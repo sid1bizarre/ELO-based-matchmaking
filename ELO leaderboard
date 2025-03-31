@@ -1,0 +1,10 @@
+local player = game.Players.LocalPlayer
+local playerELO = player:WaitForChild("ELO") -- Assuming you have a RemoteEvent to get ELO
+
+local eloLabel = script.Parent:WaitForChild("TextLabel")
+eloLabel.Text = "ELO: " .. playerELO.Value
+
+-- Update ELO display when it changes
+playerELO.Changed:Connect(function()
+    eloLabel.Text = "ELO: " .. playerELO.Value
+end)
