@@ -1,0 +1,64 @@
+local Matchmaking = {}
+local Players = game:GetService("Players")
+
+-- ELO settings
+local INITIAL_ELO = 1000
+local K_FACTOR = 32 -- Determines how much ELO changes after a match
+
+-- Table to store player ELO ratings
+local playerELO = {}
+
+-- Function to initialize player ELO
+local function initializePlayerELO(player)
+	if not playerELO[player.UserId] then
+		playerELO[player.UserId] = INITIAL_ELO
+	end
+end
+
+-- Function to update ELO ratings after a match
+local function updateELO(winner, loser)
+	local winnerELO = playerELO[winner.UserId]
+	local loserELO = playerELO[loser.UserId]
+
+	local expectedWinnerScore = 1 / (1 + 10 ^ ((loserELO - winnerELO) / 400))
+	local expectedLoserScore = 1 / (1 + 10 ^ ((winnerELO - loserELO) / 400))
+
+	playerELO[winner.UserId] = winnerELO + K_FACTOR * (1 - expectedWinnerScore)
+	playerELO[loser.UserId] = loserELO + K_FACTOR * (0 - expectedLoserScore)
+end
+
+-- Function to match players
+function Matchmaking.matchPlayers()
+	local players = Players:GetPlayers()
+	local matchedPairs = {}
+
+	-- Sort players by ELO
+	table.sort(players, function(a, b)
+		return playerELO[a.UserId] < playerELO[b.UserId]
+	end)
+
+	-- Create pairs of players
+	for i = 1, #players, 2 do
+		if players[i + 1] then
+			table.insert(matchedPairs, {players[i], players[i + 1]})
+		end
+	end
+
+	return matchedPairs
+end
+
+-- Function to handle player joining
+function Matchmaking.onPlayerAdded(player)
+	initializePlayerELO(player)
+end
+
+-- Function to handle player leaving
+function Matchmaking.onPlayerRemoving(player)
+	playerELO[player.UserId] = nil
+end
+
+-- Connect player events
+Players.PlayerAdded:Connect(Matchmaking.onPlayerAdded)
+Players.PlayerRemoving:Connect(Matchmaking.onPlayerRemoving)
+
+return Matchmaking
